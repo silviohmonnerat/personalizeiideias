@@ -3,37 +3,44 @@ import { compare } from "bcrypt";
 import jwt from "jsonwebtoken";
 
 import { prisma } from "../services/prisma";
+import { setRedis } from "../services/redis";
 
 interface IAuthenticateClient {
-  username: string;
+  email: string;
   password: string;
 }
 
 export class SessionController {
   async handle(request: Request, response: Response) {
-    const { username, password }: IAuthenticateClient = request.body;
+    try {
+      const { email, password }: IAuthenticateClient = request.body;
 
-    const user = await prisma.sessions.findFirst({
-      where: {
-        username,
-      },
-    });
+      const user = await prisma.users.findFirst({
+        where: {
+          email,
+        },
+      });
 
-    if (!user) {
-      throw new Error("Username or password invalid!");
+      if (!user) {
+        return response.status(401).json({ error: "User not found!" });
+      }
+
+      const passwordMatch = await compare(password, user.password);
+
+      if (!passwordMatch) {
+        return response.status(401).json({ error: "Password invalid!" });
+      }
+
+      const token = jwt.sign({ email }, process.env.JWT_SECRET, {
+        subject: user.id,
+        expiresIn: "1d",
+      });
+
+      await setRedis(`user-${user.id}`, JSON.stringify(user));
+
+      return response.json(token);
+    } catch (error) {
+      return response.status(401).end();
     }
-
-    const passwordMatch = await compare(password, user.password);
-
-    if (!passwordMatch) {
-      throw new Error("Username or password invalid!");
-    }
-
-    const token = jwt.sign({ username }, process.env.JWT_SECRET, {
-      subject: user.id,
-      expiresIn: "1d",
-    });
-
-    return response.json(token);
   }
 }

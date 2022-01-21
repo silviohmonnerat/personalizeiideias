@@ -1,20 +1,17 @@
 import { Router } from "express";
 
-import { authentication } from "../middlewares/auth";
+import { ensureAuthenticate } from "../middlewares/ensureAuthenticate";
 
-import { CreateUserController } from "../controllers/CreateUserController";
-import { GetUserInfoController } from "../controllers/GetUserInfoController";
-import { LoginUserController } from "../controllers/LoginUserController";
+import { SessionController } from "../controllers/SessionController";
+import { UserController } from "../controllers/UserController";
 
 const routes = Router();
 
-const createUserController = new CreateUserController();
-const loginUserController = new LoginUserController();
-const getUserInfoController = new GetUserInfoController();
+const sessionController = new SessionController();
+const userController = new UserController();
 
-routes.post("/users", createUserController.handle);
+routes.post("/session", sessionController.handle);
 
-routes.post("/login", loginUserController.handle);
-routes.get("/users/profile", authentication, getUserInfoController.handle);
+routes.get("/users/profile", ensureAuthenticate, userController.handle);
 
 export { routes };

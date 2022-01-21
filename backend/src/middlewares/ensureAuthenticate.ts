@@ -19,10 +19,7 @@ export async function ensureAuthenticate(
   const [, token] = authHeader.split(" ");
 
   try {
-    const { sub } = verify(
-      token,
-      "739f8ebd49733117a132c34fe866bc09"
-    ) as IPayload;
+    const { sub } = verify(token, process.env.JWT_SECRET) as IPayload;
 
     request.userId = sub;
 
